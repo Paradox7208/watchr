@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+'use strict';
+
+process.on('unhandledRejection', err => {
+  console.error('Unhandled Rejection', err);
+  throw err;
+});
+
+import { spawn } from 'child_process';
+spawn('tsx', ['bin/cli/watchr'].concat(process.argv.slice(2)), { cwd: process.cwd(), shell: true, stdio: 'inherit' });

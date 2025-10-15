@@ -1,0 +1,15 @@
+{
+  "appId": "uk.co.ronoc.watchr",
+  "appName": "watchR",
+  "version": {
+    "major": 1,
+    "minor": 0,
+    "patch": 0,
+    "build": 0
+  },
+  "minSdkVersion": 26,
+  "compileSdkVersion": 36,
+  "targetSdkVersion": 36,
+  "customUrlScheme": "watchr",
+  "configKey": null
+}

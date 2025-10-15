@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "allowJs": true,
+    "strict": true,
+    "noEmit": true,
+    "types": [ "vite/client", "./node_modules/@awesome.me/webawesome/dist/custom-elements-jsx.d.ts", "./src/main.d.ts" ],
+    "isolatedModules": false,
+    "baseUrl": ".",
+    "paths": {
+      "~/*": [ "src/*" ],
+      "@webawesome/*": [ "node_modules/@awesome.me/webawesome/dist/*" ]
+    },
+    "skipDefaultLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "exclude": [ "node_modules" ]
+}

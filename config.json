@@ -1,0 +1,38 @@
+{
+  "webDir": "dist",
+  "loggingBehavior": "debug",
+  "android": {
+    "path": "platforms/android",
+    "buildOptions": {
+      "keystorePath": "",
+      "keystorePassword": "",
+      "keystoreAlias": "AndroidDebugKey",
+      "keystoreAliasPassword": "",
+      "releaseType": "APK"
+    }
+  },
+  "ios": {
+    "path": "platforms/ios"
+  },
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "androidSplashResourceName": "ic_launcher_foreground",
+      "splashFullScreen": true,
+      "splashImmersive": true,
+      "useDialog": true
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "Keyboard": {
+      "resize": "native",
+      "style": "DEFAULT",
+      "resizeOnFullScreen": true
+    }
+  }
+}
