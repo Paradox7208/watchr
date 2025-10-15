@@ -1,0 +1,5 @@
+.tanstack/**
+dist/**
+src/routeTree.gen.ts
+!ssl/**
+local_server_assets/**
