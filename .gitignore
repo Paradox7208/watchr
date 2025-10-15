@@ -3,3 +3,7 @@ dist/**
 src/routeTree.gen.ts
 !ssl/**
 local_server_assets/**
+.vs/**
+.git/**
+node_modules/**
+platforms/**
