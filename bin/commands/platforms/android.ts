@@ -36,7 +36,6 @@ export async function configure(android: AndroidProject, build: Build, opts: Com
 
     const config: Config = await loadConfig();
 
-    appPlugin(android);
     await fileOpenerPlugin(android);
     await splashscreenPlugin(android, config, opts);
 
@@ -76,22 +75,6 @@ function addPermission(manifest: XmlFile, name: string, fragment: string) {
 
 function addPermissionSimple(manifest: XmlFile, name: string) {
     addPermission(manifest, name, `<uses-permission android:name="${name}" />`);
-}
-
-function appPlugin(android: AndroidProject) {
-    addIntentFilter(
-        android.getAndroidManifest(),
-        "manifest/application/activity[@android:name = '.MainActivity']",
-        'android.intent.action.VIEW',
-        `
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="@string/custom_url_scheme" />
-        </intent-filter>
-        `
-    );
 }
 
 async function fileOpenerPlugin(android: AndroidProject): Promise<void> {

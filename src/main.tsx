@@ -9,9 +9,18 @@ import { registerIconLibrary } from '@awesome.me/webawesome';
 import '@webawesome/styles/themes/default.css';
 import '@webawesome/styles/color/palettes/default.css';
 
+function getFontIconSuffix(family: string) {
+    switch (family.toLowerCase()) {
+        case 'regular':
+            return '-regular';
+        default:
+            return '';
+    }
+}
+
 registerIconLibrary('default', {
     resolver: (name, family) => {
-        const suffix = family === 'filled' ? '-fill' : '';
+        const suffix = getFontIconSuffix(family);
         return `/icons/${name}${suffix}.svg`;
     },
 });

@@ -65,31 +65,34 @@ body {
     background-color: transparent;
 }
 
-main {
+#root {
     display: grid;
-    grid-auto-rows: minmax(auto, 50vh);
-    align-content: center;
-    height: 100%;
-    grid-gap: 1em;
-    overflow: hidden;
+    grid-template-rows: auto 1fr;
 }
 
-section {
+.header-actions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    grid-column-gap: 0.625rem;
+    justify-content: end;
+    font-size: 2em;
+}
+
+.header-actions .header-action {
+    font-size: 1em;
+}
+
+main {
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    overflow: hidden auto;
+    padding: 1em;
 }
 
 .movies {
     width: 100%;
     display: grid;
-    overflow: auto hidden;
-    grid-gap: 0.625em;
-    grid-auto-flow: column;
-    place-items: center;
-    flex-grow: 1;
+    grid-gap: 0.625rem;
 }
 
 .movie {
@@ -100,7 +103,6 @@ section {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    aspect-ratio: 2 / 3;
     background-color: var(--wa-color-surface-default);
     border-color: var(--wa-color-surface-border);
     border-radius: var(--wa-panel-border-radius);
@@ -116,6 +118,19 @@ section {
     flex: 1 1 auto;
     overflow: hidden;
     text-align: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transform: scale(1);
+    transition-property: transform;
+    transition-duration: 300ms;
+    transition-timing-function: ease-in-out;
+    aspect-ratio: 2 / 3;
+    container-type: inline-size;
+}
+
+.media:active {
+    transform: scale(0.97);
 }
 
 .media img {
@@ -124,22 +139,65 @@ section {
     object-fit: cover;
 }
 
-.footer-controls {
-    padding: var(--wa-space-xs);
-    text-align: center;
-    container: controls / inline-size;
-}
-
-.controls {
+.media .playicon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
     font-size: 1cqw;
 }
 
-.controls > .control {
-    font-size: 5.3872em;
+.media .playicon .icon {
+    font-size: 71.6846em;
+    opacity: 0.75;
+    transition-property: opacity, transform;
+    transition-duration: 300ms;
+    transition-timing-function: linear;
 }
 
-.remove-movie {
+#continue-watching {
+    overflow: auto hidden;
+}
+
+#continue-watching .movies {
+    grid-auto-flow: column;
+    justify-content: space-evenly;
+    container: size;
+}
+
+#continue-watching .footer-controls {
+    padding: var(--wa-space-xs);
+    text-align: center;
+    container-type: inline-size;
+}
+
+#continue-watching .footer-controls .controls {
+    font-size: 1cqw;
+}
+
+#continue-watching .footer-controls .controls .control {
+    font-size: 11.254834em;
+}
+
+#continue-watching .remove-movie {
     position: absolute;
     top: 0;
     right: 0;
+    z-index: 2;
+}
+
+#continue-watching .media {
+    width: 15cqh;
+    max-height: 22.5cqh;
+}
+
+#all-movies .movies {
+    grid-template-columns: repeat(5, 1fr);
+    justify-content: space-between;
 }

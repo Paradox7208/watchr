@@ -1,4 +1,4 @@
-import { Index, Match, onMount, Show, Suspense, Switch } from "solid-js";
+import { createSignal, Index, Match, onMount, Show, Suspense, Switch } from "solid-js";
 import { getMovies, hasContinueWatching, setActiveMovie, setMovies, updateMovieTimestamp } from '~/states/movie';
 
 import '@webawesome/components/card/card.js';
@@ -12,18 +12,61 @@ import { Capacitor } from "@capacitor/core";
 import { FilePicker } from '@capawesome/capacitor-file-picker';
 import { FileInfo, Filesystem } from '@capacitor/filesystem';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
+import orderBy from 'lodash/orderBy';
 
-const supportedVideoExtensions = ['mp4', 'm3u8', 'webm'];
+const supportedVideoExtensions = ['mp4', 'flv', 'm3u8', 'webm'];
 const supportedThumbnailExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 const isWebPlatform = Capacitor.getPlatform() === 'web';
 
 export default function HomeComponent() {
+    const [moviesPerRow, setMoviesPerRow] = createSignal(5);
+    const navigate = useNavigate();
     const movies = () => getMovies();
+    const continueWatching = () => orderBy(movies(), ['lastWatched', 'name'], ['desc', 'asc']);
+
+    const updateMoviesPerRow = async (value: number) => {
+        if (!isNaN(value) && value >= 1 && value <= 10) {
+            setMoviesPerRow(value);
+            await Preferences.set({ key: 'MoviesPerRowValue', value: value.toString() });
+        }
+    }; 
+
+    const increaseMoviesPerRow = async () => await updateMoviesPerRow(moviesPerRow() + 1);
+    const decreaseMoviesPerRow = async () => await updateMoviesPerRow(moviesPerRow() - 1);
+
+    const playMovie = (data: any, e: Event) => {
+        e.preventDefault();
+        setActiveMovie(movies().find((m) => m.id === data.id));
+        navigate('/videoplayer/' + data.r);
+    };
+
+    const removeFromContinueWatching = async (movie: any, e: Event) => {
+        e.preventDefault();
+        updateMovieTimestamp(movie.id, 0);
+
+        const cw: any = await getContinueWatching();
+
+        if (cw.hasOwnProperty(movie.normalisedName)) {
+            delete cw[movie.normalisedName];
+
+            if (Object.keys(cw).length >= 1) {
+                await Preferences.set({ key: 'ContinueWatching', value: JSON.stringify(cw) });
+            } else {
+                await Preferences.remove({ key: 'ContinueWatching' });
+            }
+        }
+    };
 
     onMount(async () => {
         if (!isWebPlatform) {
             await ScreenOrientation.lock({ orientation: 'portrait' });
         }
+
+        await Preferences.get({ key: 'MoviesPerRowValue' }).then((p) => {
+            if (p.value) {
+                updateMoviesPerRow(Number(p.value));
+            }
+        });
 
         const titles = await fetchMovies();
         setMovies(() => titles);
@@ -31,14 +74,83 @@ export default function HomeComponent() {
 
     return (
         <>
+            <header class="header-actions">
+                <wa-button appearance="plain" size="large" variant="neutral" class="header-action" onClick={decreaseMoviesPerRow}>
+                    <wa-icon name="table-cells-large" class="icon"></wa-icon>
+                </wa-button>
+                <wa-button appearance="plain" size="large" variant="neutral" class="header-action" onClick={increaseMoviesPerRow}>
+                    <wa-icon name="table-cells" class="icon"></wa-icon>
+                </wa-button>
+            </header>
+
             <Suspense fallback={<p>Loading movies...</p>}>
                 <Switch>
                     <Match when={movies()}>
                         <main>
-                            <Show when={hasContinueWatching()}>
-                                <MovieSectionComponent title="Continue watching" isContinueWatching={true}></MovieSectionComponent>
-                            </Show>
-                            <MovieSectionComponent title="All films" isContinueWatching={false}></MovieSectionComponent>
+                            <Switch>
+                                <Match when={hasContinueWatching()}>
+                                    <section>
+                                        <h3>Continue watching</h3>
+                                        <div id="continue-watching">
+                                            <div class="movies">
+                                                <Index each={continueWatching()}>
+                                                    {(movie) => (
+                                                        <>
+                                                            <Show when={movie().time >= 1}>
+                                                                <div class="movie">
+                                                                    <wa-button appearance="plain" size="large" variant="neutral" class="remove-movie" onClick={[removeFromContinueWatching, movie()]}>
+                                                                        <wa-icon name="xmark" class="icon"></wa-icon>
+                                                                    </wa-button>
+                                                                    <Switch fallback={<p class="media">{movie().name}</p>}>
+                                                                        <Match when={movie().thumbnail}>
+                                                                            <div class="media" onclick={[playMovie, { id: movie().id, r: 1 }]}>
+                                                                                <img src={movie().thumbnail} title={movie().name} />
+                                                                            </div>
+                                                                        </Match>
+                                                                    </Switch>
+                                                                    <div class="footer-controls">
+                                                                        <div class="controls">
+                                                                            <wa-button appearance="accent" size="small" variant="brand" class="control" onClick={[playMovie, { id: movie().id, r: 0 }]}>
+                                                                                <wa-icon slot="start" name="backward-step" class="icon"></wa-icon>
+                                                                                <span>RESTART</span>
+                                                                            </wa-button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </Show>
+                                                        </>
+                                                    )}
+                                                </Index>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </Match>
+                                <Match when={true}>
+                                    <section></section>
+                                </Match>
+                            </Switch>
+                            <section>
+                                <h3>All films</h3>
+                                <div id="all-movies">
+                                    <div class="movies" style={{ 'grid-template-columns': ('repeat(' + moviesPerRow() + ', 1fr)') }}>
+                                        <Index each={movies()}>
+                                            {(movie) => (
+                                                <>
+                                                    <div class="movie">
+                                                        <Switch fallback={<p class="media">{movie().name}</p>}>
+                                                            <Match when={movie().thumbnail}>
+                                                                <div class="media" onclick={[playMovie, { id: movie().id, r: 1 }]}>
+                                                                    <img src={movie().thumbnail} title={movie().name} />
+                                                                </div>
+                                                            </Match>
+                                                        </Switch>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </Index>
+                                    </div>
+                                </div>
+                            </section>
                         </main>
                     </Match>
                 </Switch>
@@ -59,17 +171,20 @@ function fetchMovies(): Promise<any[]> {
             const continueWatching = await getContinueWatching();
             const movies = [];
 
-            let normName: string = '';
+            let normName: string = '',
+                cw: any | null = null;
 
             for (var t of titles) {
                 normName = t.name.toLowerCase().replaceAll(/[^a-zA-Z0-9]/g, '');
+                cw = (continueWatching.hasOwnProperty(normName) ? continueWatching[normName] : null);
                 movies.push({
                     id: ('movie_' + movies.length),
                     name: t.name,
                     uri: t.uri,
                     thumbnail: t.thumbnail,
                     normalisedName: normName,
-                    time: 1 ?? (continueWatching.hasOwnProperty(normName) ? continueWatching[normName] : 0)
+                    time: cw?.time ?? 0,
+                    lastWatched: cw?.lastWatched ?? 0
                 });
             }
 
@@ -88,12 +203,11 @@ function getMovieTitles(): Promise<any[]> {
     return new Promise(async (resolve) => {
         try {
             if (isWebPlatform) {
-                return resolve(Array.from(new Array(5)).map((_, idx) => {
+                return resolve(Array.from(new Array(25)).map((_, idx) => {
                     return {
                         name: 'Jurassic Park (1993)',
                         uri: 'http://watchr.local/Jurassic%20Park%20(1993).mp4',
-                        thumbnail: 'http://watchr.local/thumbnails/Jurassic%20Park%20(1993).jpg',
-                        time: 1
+                        thumbnail: 'http://watchr.local/thumbnails/Jurassic%20Park%20(1993).jpg'
                     };
                 }));
             }
@@ -126,7 +240,7 @@ function getMovieTitles(): Promise<any[]> {
                 }
             }
 
-            resolve(movies);
+            resolve(orderBy(movies, ['name'], ['asc']));
         } finally {
             resolve([]);
         }
@@ -194,44 +308,44 @@ function MovieSectionComponent(props: any) {
     return (
         <>
             <section>
-                <h2>{props.title}</h2>
-                <div class="movies">
-                    <Index each={movies()}>
-                        {(movie, index) => (
-                            <>
-                                <Show when={!props.isContinueWatching || (movie().time >= 1)}>
-                                    <div class="movie">
-                                        <Show when={props.isContinueWatching}>
-                                            <wa-button appearance="plain" size="large" variant="neutral" class="remove-movie" onClick={[removeFromContinueWatching, movie()]}>
-                                                <wa-icon name="xmark" class="icon"></wa-icon>
-                                            </wa-button>
-                                        </Show>
-                                        <Switch fallback={<p class="media">{movie().name}</p>}>
-                                            <Match when={movie().thumbnail}>
-                                                <div class="media">
-                                                    <img src={movie().thumbnail} title={movie().name} />
-                                                </div>
-                                            </Match>
-                                        </Switch>
-                                        <div class="footer-controls">
-                                            <wa-button-group orientation="horizontal" class="controls">
-                                                <Show when={props.isContinueWatching}>
-                                                    <wa-button appearance="accent" size="small" variant="brand" class="control" onClick={[playMovie, { i: index, r: 0 }]}>
-                                                        <wa-icon slot="start" name="backward-step" class="icon"></wa-icon>
-                                                        <span>RESTART</span>
-                                                    </wa-button>
-                                                </Show>
-                                                <wa-button appearance="accent" size="small" variant="success" class="control" onClick={[playMovie, { i: index, r: 1 }]}>
-                                                    <wa-icon slot="start" name="play" class="icon"></wa-icon>
-                                                    <span>PLAY</span>
+                <h3>{props.title}</h3>
+                <div class="movie-viewport">
+                    <div class="movies" classList={{ 'continue-watching': props.isContinueWatching }}>
+                        <Index each={movies()}>
+                            {(movie, index) => (
+                                <>
+                                    <Show when={!props.isContinueWatching || (movie().time >= 1)}>
+                                        <div class="movie">
+                                            <Show when={props.isContinueWatching}>
+                                                <wa-button appearance="plain" size="large" variant="neutral" class="remove-movie" onClick={[removeFromContinueWatching, movie()]}>
+                                                    <wa-icon name="xmark" class="icon"></wa-icon>
                                                 </wa-button>
-                                            </wa-button-group>
+                                            </Show>
+                                            <Switch fallback={<p class="media">{movie().name}</p>}>
+                                                <Match when={movie().thumbnail}>
+                                                    <div class="media" onclick={[playMovie, { i: index, r: 1 }]}>
+                                                        <img src={movie().thumbnail} title={movie().name} />
+                                                        <wa-icon family="regular" name="circle-play" class="playicon"></wa-icon>
+                                                    </div>
+                                                </Match>
+                                            </Switch>
+
+                                            <Show when={props.isContinueWatching}>
+                                                <div class="footer-controls">
+                                                    <div class="controls">
+                                                        <wa-button appearance="accent" size="small" variant="brand" class="control" onClick={[playMovie, { i: index, r: 0 }]}>
+                                                            <wa-icon slot="start" name="backward-step" class="icon"></wa-icon>
+                                                            <span>RESTART</span>
+                                                        </wa-button>
+                                                    </div>
+                                                </div>
+                                            </Show>
                                         </div>
-                                    </div>
-                                </Show>
-                            </>
-                        )}
-                    </Index>
+                                    </Show>
+                                </>
+                            )}
+                        </Index>
+                    </div>
                 </div>
             </section>
         </>

@@ -1,11 +1,10 @@
 ﻿import { useNavigate, useParams } from "@solidjs/router";
 import { getActiveMovie, setActiveMovie } from '~/states/movie';
 import { onCleanup, onMount } from "solid-js";
-import { MediaPlayer } from '@eduardoroth/media-player';
-import { App } from '@capacitor/app';
 import { Capacitor, PluginListenerHandle } from "@capacitor/core";
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { Preferences } from "@capacitor/preferences";
+import { CapacitorVideoPlayer } from '@trustcoder/capacitor-video-player';
 
 export default function Component() {
     const navigate = useNavigate();
@@ -25,20 +24,21 @@ export default function Component() {
 
     onCleanup(async () => {
         await backButton?.remove();
-        await MediaPlayer.removeAllListeners({ playerId: playerId });
-        await MediaPlayer.removeAll();
-        await saveContinueWatching();
+        await CapacitorVideoPlayer.removeAllListeners();
 
         setActiveMovie(null);
     });
 
     onMount(async () => {
-        backButton = await App.addListener('backButton', async (e) => {
-            e.canGoBack = false;
-            navigate('/');
-        });
-
         continueWatching = await Preferences.get({ key: 'ContinueWatching' }).then((p) => p.value ? JSON.parse(p.value) : {});
+
+        if (!continueWatching.hasOwnProperty(movie.normalisedName)) {
+            continueWatching[movie.normalisedName] = { time: 0 };
+        }
+
+        continueWatching[movie.normalisedName].lastWatched = Date.now();
+
+        await saveContinueWatching();
 
         if (isNotWebPlatform) {
             await ScreenOrientation.unlock();
@@ -50,62 +50,45 @@ export default function Component() {
     return (<div id={playerId} class="fullscreen"></div>);
 
     async function startMovie() {
-        await MediaPlayer.create({
+        await CapacitorVideoPlayer.initPlayer({
+            bkmodeEnabled: true,
+            chromecast: false,
+            componentTag: 'div',
+            displayMode: 'user_landscape',
+            exitOnEnd: true,
+            loopOnEnd: false,
+            mode: 'fullscreen',
+            pipEnabled: true,
             playerId: playerId,
-            url: movie.uri,
-            web: {
-                enableChromecast: false
-            },
-            android: {
-                enablePiP: true,
-                enableChromecast: false,
-                fullscreenOnLandscape: true,
-                openInFullscreen: true,
-                stopOnTaskRemoved: false,
-                enableBackgroundPlay: true,
-                automaticallyEnterPiP: false
-            },
-            extra: {
-                autoPlayWhenReady: false,
-                loopOnEnd: false,
-                title: movie.name,
-                rate: 1,
-                poster: movie.thumbnail
-            },
-            placement: {
-                horizontalMargin: 0,
-                verticalMargin: 0,
-                videoOrientation: 'HORIZONTAL',
-                horizontalAlignment: 'START',
-                verticalAlignment: 'TOP'
-            }
+            rate: 1,
+            showControls: true,
+            smallTitle: movie.name,
+            title: movie.name,
+            url: movie.uri
         });
 
-        const { remove } = await MediaPlayer.addListener('MediaPlayer:Ready', async () => {
+        const { remove } = await CapacitorVideoPlayer.addListener('jeepCapVideoPlayerReady', async () => {
             await remove();
 
             if (resume && movie.time >= 1) {
-                await MediaPlayer.setCurrentTime({ playerId: playerId, time: movie.time });
+                await CapacitorVideoPlayer.setCurrentTime({ playerId: playerId, seektime: movie.time });
             }
 
-            await MediaPlayer.setVisibilityBackgroundForPiP({ isVisible: false, playerId: playerId });
-            await MediaPlayer.play({ playerId: playerId });
+            await CapacitorVideoPlayer.play({ playerId: playerId });
         });
 
-        await MediaPlayer.addListener('MediaPlayer:Ended', async () => {
-            if (continueWatching.hasOwnProperty(movie.normalisedName)) {
-                delete continueWatching[movie.normalisedName];
-            }
+        await CapacitorVideoPlayer.addListener('jeepCapVideoPlayerPause', async (e) => {
+            await updateContinueWatching(Number(e.currentTime));
+        });
 
+        await CapacitorVideoPlayer.addListener('jeepCapVideoPlayerEnded', async (e) => {
+            await updateContinueWatching(Number(e.currentTime));
             navigate('/');
         });
 
-        await MediaPlayer.addListener('MediaPlayer:TimeUpdated', async (e) => {
-            continueWatching[movie.normalisedName] = e.currentTime;
-        });
-
-        await MediaPlayer.addListener('MediaPlayer:Pause', async () => {
-            await saveContinueWatching();
+        await CapacitorVideoPlayer.addListener('jeepCapVideoPlayerExit', async (e) => {
+            await updateContinueWatching(Number(e.currentTime));
+            navigate('/');
         });
     }
 
@@ -115,5 +98,15 @@ export default function Component() {
         } else {
             await Preferences.remove({ key: 'ContinueWatching' });
         }
+    }
+
+    async function updateContinueWatching(time: number) {
+        if (isNaN(time) || time <= 0) {
+            return;
+        }
+
+        continueWatching[movie.normalisedName].time = time;
+
+        await saveContinueWatching();
     }
 }
