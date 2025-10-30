@@ -73,9 +73,9 @@ body {
 .header-actions {
     display: flex;
     flex-direction: row;
-    grid-column-gap: 0.625rem;
+    grid-column-gap: 0.2778em;
     justify-content: end;
-    font-size: 2em;
+    font-size: 1.125em;
 }
 
 .header-actions .header-action {
@@ -133,32 +133,35 @@ main {
     transform: scale(0.97);
 }
 
+.media p {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 1.375em;
+    text-align: center;
+    padding: 0.454546em;
+    margin: 0;
+    max-height: 100%;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.media p > .name {
+    overflow: hidden auto;
+    overflow-wrap: break-word;
+}
+
 .media img {
     height: 100%;
     width: 100%;
     object-fit: cover;
-}
-
-.media .playicon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    font-size: 1cqw;
-}
-
-.media .playicon .icon {
-    font-size: 71.6846em;
-    opacity: 0.75;
-    transition-property: opacity, transform;
-    transition-duration: 300ms;
-    transition-timing-function: linear;
+    position: relative;
+    z-index: 2;
 }
 
 #continue-watching {
@@ -169,20 +172,6 @@ main {
     grid-auto-flow: column;
     justify-content: space-evenly;
     container: size;
-}
-
-#continue-watching .footer-controls {
-    padding: var(--wa-space-xs);
-    text-align: center;
-    container-type: inline-size;
-}
-
-#continue-watching .footer-controls .controls {
-    font-size: 1cqw;
-}
-
-#continue-watching .footer-controls .controls .control {
-    font-size: 11.254834em;
 }
 
 #continue-watching .remove-movie {
@@ -197,7 +186,56 @@ main {
     max-height: 22.5cqh;
 }
 
+#continue-watching .progress {
+    --track-height: 0.3125em;
+    position: absolute;
+    bottom: 0.625em;
+    left: 0;
+    right: 0;
+    padding: 0 0.625em;
+    z-index: 3;
+}
+
 #all-movies .movies {
     grid-template-columns: repeat(5, 1fr);
     justify-content: space-between;
+}
+
+#all-movies .movies.list {
+    grid-template-columns: 1fr !important;
+}
+
+#all-movies .movies.list .movie {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+#all-movies .movies.list .movie .media {
+    display: flex;
+    flex-direction: row;
+    aspect-ratio: auto;
+    height: 15vh;
+    overflow: hidden;
+    container-type: normal;
+    align-items: center;
+}
+
+#all-movies .movies.list .movie .media img {
+    width: auto;
+    height: 100%;
+    aspect-ratio: 2 / 3;
+}
+
+#all-movies .movies.list .movie .media p {
+    position: relative;
+    text-align: left;
+    font-size: 0.97826em;
+    grid-row-gap: 0.454546em;
+}
+
+#all-movies .movies.list .movie .media p > .timestamp {
+    flex-shrink: 0;
+    font-size: 0.636364em;
+    color: var(--wa-color-text-quiet);
 }

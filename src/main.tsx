@@ -1,5 +1,4 @@
 ﻿import { Capacitor } from '@capacitor/core';
-import { SplashScreen } from '@capacitor/splash-screen';
 import { Animation, StatusBar } from '@capacitor/status-bar';
 import { lazy } from 'solid-js';
 import { render } from 'solid-js/web';
@@ -31,7 +30,6 @@ const VideoPlayer = lazy(() => import("./videoplayer"));
 (async function () {
     if (Capacitor.getPlatform() === 'android') {
         await StatusBar.hide({ animation: Animation.None });
-        await SplashScreen.hide();
 
         const afs: any = ((window as any).AndroidFullScreen);
 

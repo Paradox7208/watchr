@@ -1,5 +1,5 @@
 ﻿import { useNavigate, useParams } from "@solidjs/router";
-import { getActiveMovie, setActiveMovie } from '~/states/movie';
+import { getActiveMovie, setDuration, setActiveMovie } from '~/states/movie';
 import { onCleanup, onMount } from "solid-js";
 import { Capacitor, PluginListenerHandle } from "@capacitor/core";
 import { ScreenOrientation } from '@capacitor/screen-orientation';
@@ -19,13 +19,10 @@ export default function Component() {
     const playerId: string = ('MediaPlayer_' + Date.now());
     const isNotWebPlatform: boolean = (Capacitor.getPlatform() !== 'web');
 
-    let continueWatching: any = {},
-        backButton: PluginListenerHandle | null = null;
+    let continueWatching: any = {};
 
     onCleanup(async () => {
-        await backButton?.remove();
         await CapacitorVideoPlayer.removeAllListeners();
-
         setActiveMovie(null);
     });
 
@@ -72,6 +69,12 @@ export default function Component() {
 
             if (resume && movie.time >= 1) {
                 await CapacitorVideoPlayer.setCurrentTime({ playerId: playerId, seektime: movie.time });
+            }
+
+            const duration: number = await CapacitorVideoPlayer.getDuration({ playerId: playerId }).then((result) => result.value ? Number(result.value) : 0);
+
+            if (!isNaN(duration) && duration >= 0) {
+                await setDuration(movie.normalisedName, duration);
             }
 
             await CapacitorVideoPlayer.play({ playerId: playerId });
